@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Blood Bank – Frontend
 
-## Getting Started
+Next.js (App Router) + TypeScript + Tailwind CSS v4 + shadcn/ui. Talks to the FastAPI backend.
 
-First, run the development server:
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
+npm install
+npm run dev      # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Folder structure
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+frontend/
+├── public/                  Static assets
+├── tests/                   unit/ and e2e/ tests
+└── src/
+    ├── proxy.ts             Optimistic auth redirects (Next 16 replacement for middleware)
+    ├── app/                 Routing only: thin pages, layouts, loading/error files
+    │   ├── (marketing)/     Public site: /, /about, /find-blood, /donate
+    │   ├── (auth)/          /login, /register, /forgot-password
+    │   ├── (dashboard)/     Authenticated app under /dashboard/*
+    │   └── api/health/      Health check for Docker / uptime monitors
+    ├── features/            Domain modules (auth, donors, inventory, requests,
+    │   └── <feature>/       appointments, hospitals, notifications), each with:
+    │       ├── api/         Calls to the backend for this domain
+    │       ├── components/  UI specific to this feature
+    │       ├── hooks/       Data hooks (TanStack Query, etc.)
+    │       ├── schemas/     Zod validation schemas
+    │       └── types/       TypeScript types
+    ├── components/
+    │   ├── ui/              shadcn/ui primitives (generated, do not hand-edit lightly)
+    │   ├── layout/          Header, footer, sidebar, topbar
+    │   ├── shared/          Reusable app widgets (DataTable, EmptyState, PageHeader)
+    │   └── forms/           Reusable form fields
+    ├── hooks/               Generic hooks used across features
+    ├── providers/           Client-side context providers, composed in AppProviders
+    ├── config/              site.ts, routes.ts, env.ts
+    ├── lib/
+    │   ├── api/             fetch client + ApiError
+    │   ├── auth/            Session helpers
+    │   ├── constants/       Blood groups, compatibility matrix, donation rules
+    │   └── utils.ts         cn() helper
+    └── types/               Types shared across features
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Conventions
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Pages stay thin.** A `page.tsx` composes components from `features/`; business logic does not live in `app/`.
+- **Features don't import each other's internals.** Share code by moving it to `components/shared`, `lib` or `hooks`.
+- **Dependency direction:** `app` → `features` → `components` / `hooks` / `lib` / `config`. Never the reverse.
+- **No hard-coded paths or env access.** Use `ROUTES` from `config/routes.ts` and `env` from `config/env.ts`.
+- **Server Components by default.** Add `"use client"` only where interactivity is needed.
+- **Auth:** the backend sets an httpOnly cookie. `proxy.ts` only does optimistic redirects; the backend remains the authority.
+- Import with the `@/` alias (maps to `src/`).
+- Add shadcn components with `npx shadcn@latest add <name>`.
